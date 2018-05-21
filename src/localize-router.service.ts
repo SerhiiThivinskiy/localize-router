@@ -5,6 +5,7 @@ import 'rxjs/add/observable/forkJoin';
 import 'rxjs/add/operator/toPromise';
 import 'rxjs/add/operator/filter';
 import 'rxjs/add/operator/pairwise';
+import 'rxjs/add/operator/do';
 
 import { LocalizeParser } from './localize-router.parser';
 import { LocalizeRouterSettings } from './localize-router.config';
@@ -72,6 +73,7 @@ export class LocalizeRouterService {
           url = urlSegments.join('/');
         }
 
+        this.router.resetConfig(this.parser.routes);
         if (useNavigateMethod) {
           this.router.navigate([url], extras);
         } else {
@@ -153,10 +155,13 @@ export class LocalizeRouterService {
       const currentLang = this.parser.getLocationLang(currentEvent.url) || this.parser.defaultLang;
 
       if (currentLang !== previousLang) {
-        this.parser.translateRoutes(currentLang).subscribe(() => {
-          // Fire route change event
-          this.routerEvents.next(currentLang);
-        });
+        this.parser.translateRoutes(currentLang)
+          .do(_ => this.router.resetConfig(this.parser.routes))
+          .subscribe(() => {
+            this.router.resetConfig(this.parser.routes);
+            // Fire route change event
+            this.routerEvents.next(currentLang);
+          });
       }
     };
   }
